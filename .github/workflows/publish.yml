@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # Required: npm uses OIDC to generate/verify provenance
+  id-token: write   # required for OIDC provenance
 
 jobs:
   publish:
@@ -24,6 +24,43 @@ jobs:
       # Upgrade npm (>= 11.5.1 recommended)
       - name: Update npm
         run: npm i -g npm@latest
+
+      # NEW: Ensure package.json.repository.url matches THIS repo (after normalization)
+      - name: Precheck repository.url matches this repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Read repository.url from package.json (may be undefined)
+          PKG_REPO_URL="$(node -e "try{console.log((require('./package.json').repository||{}).url||'')}catch(e){process.exit(1)}")"
+
+          # Normalize: drop 'git+' prefix if present
+          NORM="$PKG_REPO_URL"
+          NORM="${NORM#git+}"
+
+          # Convert SSH form git@github.com:owner/repo(.git)? -> https://github.com/owner/repo(.git)?
+          if [[ "$NORM" =~ ^git@github\.com:(.*)$ ]]; then
+            NORM="https://github.com/${BASH_REMATCH[1]}"
+          fi
+
+          # Ensure .git suffix
+          [[ -n "$NORM" && "$NORM" != *.git ]] && NORM="${NORM}.git"
+
+          EXPECTED="https://github.com/${GITHUB_REPOSITORY}.git"
+
+          echo "package.json.repository.url (raw):    $PKG_REPO_URL"
+          echo "package.json.repository.url (norm):   $NORM"
+          echo "Expected repo URL:                    $EXPECTED"
+
+          if [[ -z "$NORM" ]]; then
+            echo "::error ::package.json.repository.url is missing. Set it to: $EXPECTED"
+            exit 1
+          fi
+
+          if [[ "$NORM" != "$EXPECTED" ]]; then
+            echo "::error ::repository.url mismatch. Set package.json.repository.url to EXACTLY: $EXPECTED"
+            exit 1
+          fi
+          echo "repository.url check passed ✅"
 
       # Safety check: tag must match package.json version
       - name: Verify tag === package.json version
@@ -45,7 +82,7 @@ jobs:
       - run: npm test --if-present
       - run: npm pack --dry-run
 
-      # Use OIDC + provenance (to display provenance badge on npmjs.com)
+      # Publish with OIDC + provenance (shows the badge on npmjs.com)
       - name: Publish (OIDC + provenance)
         env:
           NPM_CONFIG_PROVENANCE: 'true'
