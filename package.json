@@ -1,0 +1,29 @@
+{
+  "name": "rdsec-npm-testing",
+  "version": "1.0.11",
+  "description": "A simple test package for npm provenance publishing.",
+  "main": "index.js",
+  "license": "MIT",
+  "author": "Jackson Hsieh <jackson_hsieh@trendmicro.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trend-rdsec-poc/npm-testing.git"
+  },
+  "bugs": {
+    "url": "https://github.com/trend-rdsec-poc/npm-testing/issues"
+  },
+  "homepage": "https://github.com/trend-rdsec-poc/npm-testing#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "index.js",
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "echo 'no build step defined'",
+    "test": "echo 'no tests defined' && exit 0"
+  }
+}
